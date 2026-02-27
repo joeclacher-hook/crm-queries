@@ -340,11 +340,13 @@ with tab_hs:
     st.divider()
 
     if hs_mode == "Discover objects":
-        hs_filter = st.text_input("Filter by name (leave blank for all)", key="hs_obj_filter")
+        hs_filter = st.text_input("Filter by name", placeholder="e.g. contact, deal", key="hs_obj_filter")
 
         if st.button("Search Objects", key="hs_search_btn", type="primary"):
             if not hs_secret:
                 st.error("Enter a customer name first.")
+            elif not hs_filter.strip():
+                st.error("Enter a filter — searching all objects can exceed 2000 requests.")
             else:
                 try:
                     client = HubSpotClient(session)
@@ -487,11 +489,13 @@ with tab_sf:
     st.divider()
 
     if sf_mode == "Discover objects":
-        sf_filter = st.text_input("Filter by name (leave blank for all)", key="sf_obj_filter")
+        sf_filter = st.text_input("Filter by name", placeholder="e.g. opportunity, asset", key="sf_obj_filter")
 
         if st.button("Search Objects", key="sf_search_btn", type="primary"):
             if not sf_secret:
                 st.error("Enter a customer name first.")
+            elif not sf_filter.strip():
+                st.error("Enter a filter — searching all objects can exceed 2000 requests.")
             else:
                 try:
                     client = SalesforceClient(session)
