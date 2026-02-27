@@ -71,6 +71,52 @@ aws configure export-credentials --profile hook-production-tic
         except Exception as exc:
             st.error(f"Invalid JSON: {exc}")
 
+    st.divider()
+    with st.expander("❓ Help"):
+        st.markdown(f"""
+**Getting started**
+
+1. `aws sso login --profile hook-production-tic`
+2. `aws configure export-credentials --profile hook-production-tic`
+3. Paste the JSON output above. Credentials last 8–12 hours.
+
+---
+
+**HubSpot query types**
+- **count** — total record count
+- **list** — ID + default properties
+- **all** — every property, exports to Excel
+- **shape** — all property names & types, exports to Excel
+- **search** — filter records using JSON filter rules
+
+**Salesforce query types**
+- **count** — `SELECT COUNT()`
+- **list** — Id + Name (20 records)
+- **all** — `FIELDS(ALL)`, exports to Excel (max 200)
+- **shape** — all field names & types, exports to Excel
+- **custom** — write your own SOQL
+
+**Discover mode** (both tabs) — lists all objects with record counts. Use the filter box to narrow by name.
+
+---
+
+**Rate limit protections**
+- {REQUEST_TIMEOUT}s timeout on every API call
+- {int(DISCOVER_DELAY * 1000)}ms delay between COUNT calls in discover mode
+
+---
+
+**Common errors**
+
+| Error | Fix |
+|-------|-----|
+| `400` on HubSpot OAuth | Wrong tab for that secret (e.g. Salesforce path in HubSpot tab) |
+| `instance_url not found` | Salesforce secret is missing instance URL |
+| `No usable token found` | HubSpot secret missing token — needs `access_token`, `api_key`, `hapikey`, or OAuth fields |
+| `ExpiredTokenException` | Re-run `aws sso login` + export credentials |
+| `Timeout` | API took >10s — try again |
+        """)
+
 # ── Shared helpers ────────────────────────────────────────────────────────────
 
 
@@ -371,7 +417,7 @@ if not session:
     st.info("👈 Paste your AWS credentials in the sidebar to get started.")
     st.stop()
 
-tab_hs, tab_sf, tab_help = st.tabs(["🟠 HubSpot", "🔵 Salesforce", "❓ Help"])
+tab_hs, tab_sf = st.tabs(["🟠 HubSpot", "🔵 Salesforce"])
 
 
 # ─── HubSpot tab ──────────────────────────────────────────────────────────────
@@ -658,106 +704,3 @@ with tab_sf:
 
                 except Exception as exc:
                     st.error(f"Error: {exc}")
-
-
-# ─── Help tab ─────────────────────────────────────────────────────────────────
-
-with tab_help:
-    st.header("Help & Documentation")
-
-    st.subheader("Getting started")
-    st.markdown("""
-Every time you use this tool, you need to provide fresh AWS credentials in the sidebar.
-
-**Step 1** — Log in to AWS SSO (once per day, or when your session expires):
-```bash
-aws sso login --profile hook-production-tic
-```
-
-**Step 2** — Export your temporary credentials:
-```bash
-aws configure export-credentials --profile hook-production-tic
-```
-
-**Step 3** — Copy the entire JSON output and paste it into the sidebar. Done.
-
-> Credentials typically last **8–12 hours**. If you get an auth error mid-session, just repeat steps 1–2.
-    """)
-
-    st.divider()
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.subheader("🟠 HubSpot query types")
-        st.markdown("""
-| Type | What it does |
-|------|-------------|
-| **count** | Returns the total number of records for the object |
-| **list** | Returns ID + default properties (up to your limit) |
-| **all** | Returns every property for every record — exports to Excel |
-| **shape** | Returns all property names, types, and labels — exports to Excel |
-| **search** | Filters records using the JSON filter rules you provide |
-
-**Modes**
-- **Query objects** — run one of the query types above against a specific object
-- **Discover objects** — lists all available objects (standard + custom) with record counts. Use the filter box to narrow by name.
-
-**Standard objects:** contacts, companies, deals, tickets, line_items, products, quotes, calls, emails, meetings, notes, tasks, communications
-
-**Search filter operators:** `EQ`, `NEQ`, `LT`, `LTE`, `GT`, `GTE`, `HAS_PROPERTY`, `NOT_HAS_PROPERTY`, `CONTAINS_TOKEN`, `NOT_CONTAINS_TOKEN`, `IN`, `NOT_IN`, `BETWEEN`
-        """)
-
-    with col2:
-        st.subheader("🔵 Salesforce query types")
-        st.markdown("""
-| Type | What it does |
-|------|-------------|
-| **count** | Returns the total number of records (`SELECT COUNT()`) |
-| **list** | Returns Id + Name (up to 20 records) |
-| **all** | Returns all fields using `FIELDS(ALL)` — exports to Excel |
-| **shape** | Returns all field names, types, and labels — exports to Excel |
-| **custom** | Run any SOQL query you write |
-
-**Modes**
-- **Query objects** — run one of the query types above against a specific sObject
-- **Discover objects** — lists all sObjects matching your filter with record counts. Non-queryable objects show N/A.
-
-**`all` query limit:** Salesforce caps `FIELDS(ALL)` at 200 records per call.
-
-**Custom SOQL example:**
-```sql
-SELECT Id, Name, StageName
-FROM Opportunity
-WHERE CloseDate = THIS_QUARTER
-```
-        """)
-
-    st.divider()
-
-    st.subheader("⚠️ Rate limits & safety")
-    st.markdown(f"""
-The tool has two built-in protections to avoid hammering customer APIs:
-
-- **Request timeout:** Every API call times out after **{REQUEST_TIMEOUT} seconds**. If a call hangs (slow response or network issue), it fails cleanly instead of blocking forever.
-- **Discover mode delay:** A **{int(DISCOVER_DELAY * 1000)}ms pause** is added between each COUNT request in Discover mode. This prevents firing hundreds of queries in a burst when scanning many objects.
-
-**Tips to reduce API load:**
-- Use the **filter box** in Discover mode — counting 5 matching objects is much lighter than counting all 300
-- Use **count** query type before **all** to check how large a dataset is
-- Keep record limits reasonable — `all` with 10,000 records on a wide object will be slow
-    """)
-
-    st.divider()
-
-    st.subheader("🔴 Common errors")
-    st.markdown("""
-| Error | Likely cause | Fix |
-|-------|-------------|-----|
-| `Invalid JSON` | Pasted credentials are malformed | Re-run the export command and paste fresh |
-| `400 Bad Request` on HubSpot OAuth | Wrong secret path for this tab (e.g. pasted a Salesforce path) | Check the customer name and which tab you're on |
-| `instance_url not found` | Salesforce secret is missing the instance URL | Check the secret in AWS Secrets Manager |
-| `No usable token found` | HubSpot secret doesn't contain a recognised token key | Check the secret — needs one of: `access_token`, `api_key`, `hapikey`, or OAuth fields |
-| `ExpiredTokenException` | AWS session has expired | Re-run `aws sso login` and `aws configure export-credentials` |
-| `Timeout` | API took longer than 10 seconds to respond | Try again, or check if the customer's API is having issues |
-    """)
