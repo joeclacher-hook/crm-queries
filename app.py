@@ -353,7 +353,10 @@ tab_hs, tab_sf = st.tabs(["🟠 HubSpot", "🔵 Salesforce"])
 with tab_hs:
     st.header("HubSpot Query Tool")
 
-    hs_secret = st.text_input("Secret path", placeholder="customer/hubspot", key="hs_secret")
+    hs_customer = st.text_input("Customer name", placeholder="opiniion", key="hs_customer")
+    hs_secret = f"{hs_customer.strip()}/hubspot" if hs_customer.strip() else ""
+    if hs_secret:
+        st.caption(f"Secret path: `{hs_secret}`")
     hs_refresh = st.checkbox("Always refresh OAuth token (recommended)", value=True, key="hs_refresh")
 
     hs_mode = st.radio("Mode", ["Query objects", "Discover objects"], horizontal=True, key="hs_mode")
@@ -365,7 +368,7 @@ with tab_hs:
 
         if st.button("Search Objects", key="hs_search_btn", type="primary"):
             if not hs_secret:
-                st.error("Enter a secret path first.")
+                st.error("Enter a customer name first.")
             else:
                 try:
                     client = HubSpotClient(session)
@@ -429,7 +432,7 @@ with tab_hs:
 
         if st.button("Run Query", key="hs_run", type="primary"):
             if not hs_secret:
-                st.error("Enter a secret path first.")
+                st.error("Enter a customer name first.")
             elif not hs_object:
                 st.error("Enter an object type.")
             elif hs_qtype == "search" and hs_filters_parsed is None:
@@ -495,7 +498,10 @@ with tab_hs:
 with tab_sf:
     st.header("Salesforce Query Tool")
 
-    sf_secret = st.text_input("Secret path", placeholder="customer/salesforce", key="sf_secret")
+    sf_customer = st.text_input("Customer name", placeholder="conga", key="sf_customer")
+    sf_secret = f"{sf_customer.strip()}/salesforce" if sf_customer.strip() else ""
+    if sf_secret:
+        st.caption(f"Secret path: `{sf_secret}`")
     sf_oauth = st.checkbox("Always use OAuth (recommended)", value=True, key="sf_oauth")
 
     sf_mode = st.radio("Mode", ["Query objects", "Discover objects"], horizontal=True, key="sf_mode")
@@ -507,7 +513,7 @@ with tab_sf:
 
         if st.button("Search Objects", key="sf_search_btn", type="primary"):
             if not sf_secret:
-                st.error("Enter a secret path first.")
+                st.error("Enter a customer name first.")
             else:
                 try:
                     client = SalesforceClient(session)
@@ -567,7 +573,7 @@ with tab_sf:
 
         if st.button("Run Query", key="sf_run", type="primary"):
             if not sf_secret:
-                st.error("Enter a secret path first.")
+                st.error("Enter a customer name first.")
             elif not sf_object and sf_qtype != "custom":
                 st.error("Enter a Salesforce object name.")
             elif sf_qtype == "custom" and not sf_custom_soql:
