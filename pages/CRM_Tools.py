@@ -334,7 +334,7 @@ with tab_hs:
     hs_secret = f"{hs_customer.strip()}/hubspot" if hs_customer.strip() else ""
     if hs_secret:
         st.caption(f"Secret path: `{hs_secret}`")
-    hs_refresh = st.checkbox("Always refresh OAuth token (recommended)", value=True, key="hs_refresh")
+    hs_refresh = True
 
     hs_mode = st.radio("Mode", ["Query objects", "Discover objects"], horizontal=True, key="hs_mode")
     st.divider()
@@ -493,7 +493,7 @@ with tab_sf:
     sf_secret = f"{sf_customer.strip()}/salesforce" if sf_customer.strip() else ""
     if sf_secret:
         st.caption(f"Secret path: `{sf_secret}`")
-    sf_oauth = st.checkbox("Always use OAuth (recommended)", value=True, key="sf_oauth")
+    sf_oauth = True
 
     sf_mode = st.radio("Mode", ["Query objects", "Discover objects"], horizontal=True, key="sf_mode")
     st.divider()
