@@ -18,7 +18,7 @@ from openpyxl.styles import Font, PatternFill
 # ── Page config ───────────────────────────────────────────────────────────────
 
 st.set_page_config(
-    page_title="DUG Query Tools",
+    page_title="CRM Query Tools",
     page_icon="🔍",
     layout="wide",
 )
@@ -339,7 +339,7 @@ class SalesforceClient:
 
 # ── Main UI ───────────────────────────────────────────────────────────────────
 
-st.title("🔍 DUG Query Tools")
+st.title("🔍 CRM Query Tools")
 
 if not session:
     st.info("👈 Paste your AWS credentials in the sidebar to get started.")

@@ -1,0 +1,25 @@
+HOW TO PUSH CHANGES TO THE WEB APP
+====================================
+
+1. Make your edits to any file (e.g. app.py)
+
+2. Open Terminal and run:
+
+   cd "/Users/joeclacher/Documents/Scripts/dug scripts"
+
+3. Stage the changed file(s):
+
+   git add app.py
+
+   (or to stage everything at once: git add -A)
+
+4. Commit with a message describing what you changed:
+
+   git commit -m "your message here"
+
+5. Push to GitHub:
+
+   git push
+
+The web app on Streamlit Cloud will redeploy automatically within ~30 seconds.
+No need to do anything on the Streamlit site.
