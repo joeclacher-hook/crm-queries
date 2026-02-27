@@ -71,6 +71,9 @@ aws configure export-credentials --profile hook-production-tic
         except Exception as exc:
             st.error(f"Invalid JSON: {exc}")
 
+    st.divider()
+    st.page_link("pages/Help.py", label="❓ Help & Documentation", icon=None)
+
 
 # ── Shared helpers ────────────────────────────────────────────────────────────
 
