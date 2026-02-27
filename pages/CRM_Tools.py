@@ -402,8 +402,9 @@ with tab_hs:
             hs_qtype = st.selectbox("Query type", ["count", "list", "all", "shape", "search"], key="hs_qtype")
         with col2:
             hs_limit = st.number_input("Record limit", min_value=1, max_value=10000, value=100, key="hs_limit")
-            st.caption(HS_QTYPE_HELP[hs_qtype])
             hs_props = st.text_input("Properties (comma-separated, blank = default)", key="hs_props")
+
+        st.caption(HS_QTYPE_HELP[hs_qtype])
 
         hs_filters_parsed = None
         if hs_qtype == "search":
@@ -564,7 +565,8 @@ with tab_sf:
             sf_qtype = st.selectbox("Query type", ["count", "list", "all", "shape", "custom"], key="sf_qtype")
         with col2:
             sf_limit = st.number_input("Record limit (max 200 for 'all')", min_value=1, max_value=200, value=10, key="sf_limit")
-            st.caption(SF_QTYPE_HELP[sf_qtype])
+
+        st.caption(SF_QTYPE_HELP[sf_qtype])
 
         sf_custom_soql = None
         if sf_qtype == "custom":
