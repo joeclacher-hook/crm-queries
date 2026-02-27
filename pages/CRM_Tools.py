@@ -387,6 +387,14 @@ with tab_hs:
                     st.error(f"Error: {exc}")
 
     else:
+        HS_QTYPE_HELP = {
+            "count":  "Returns the total number of records. No record data is fetched.",
+            "list":   "Returns ID + default properties up to your limit. Fast and lightweight.",
+            "all":    "Fetches every property for every record up to your limit. Exports to Excel.",
+            "shape":  "Returns all property names, types, and labels — no record data. Exports to Excel.",
+            "search": "Filters records using the JSON rules you define below. Returns matches up to your limit.",
+        }
+
         col1, col2 = st.columns(2)
         with col1:
             hs_object = st.text_input("Object type", value="contacts", key="hs_object",
@@ -395,6 +403,7 @@ with tab_hs:
         with col2:
             hs_limit = st.number_input("Record limit", min_value=1, max_value=10000, value=100, key="hs_limit")
             hs_props = st.text_input("Properties (comma-separated, blank = default)", key="hs_props")
+            st.caption(HS_QTYPE_HELP[hs_qtype])
 
         hs_filters_parsed = None
         if hs_qtype == "search":
@@ -541,12 +550,21 @@ with tab_sf:
                     st.error(f"Error: {exc}")
 
     else:
+        SF_QTYPE_HELP = {
+            "count":  "Runs SELECT COUNT() — returns total records only. No record data fetched.",
+            "list":   "Returns Id + Name for up to 20 records. Quick overview.",
+            "all":    "Fetches all fields using FIELDS(ALL). Capped at 200 records by Salesforce. Exports to Excel.",
+            "shape":  "Returns all field names, data types, and labels — no record data. Exports to Excel.",
+            "custom": "Run any SOQL query you write. Full flexibility.",
+        }
+
         col1, col2 = st.columns(2)
         with col1:
             sf_object = st.text_input("Salesforce object", placeholder="e.g. Contact, Account, Asset", key="sf_object")
             sf_qtype = st.selectbox("Query type", ["count", "list", "all", "shape", "custom"], key="sf_qtype")
         with col2:
             sf_limit = st.number_input("Record limit (max 200 for 'all')", min_value=1, max_value=200, value=10, key="sf_limit")
+            st.caption(SF_QTYPE_HELP[sf_qtype])
 
         sf_custom_soql = None
         if sf_qtype == "custom":
