@@ -71,51 +71,6 @@ aws configure export-credentials --profile hook-production-tic
         except Exception as exc:
             st.error(f"Invalid JSON: {exc}")
 
-    st.divider()
-    with st.expander("❓ Help"):
-        st.markdown(f"""
-**Getting started**
-
-1. `aws sso login --profile hook-production-tic`
-2. `aws configure export-credentials --profile hook-production-tic`
-3. Paste the JSON output above. Credentials last 8–12 hours.
-
----
-
-**HubSpot query types**
-- **count** — total record count
-- **list** — ID + default properties
-- **all** — every property, exports to Excel
-- **shape** — all property names & types, exports to Excel
-- **search** — filter records using JSON filter rules
-
-**Salesforce query types**
-- **count** — `SELECT COUNT()`
-- **list** — Id + Name (20 records)
-- **all** — `FIELDS(ALL)`, exports to Excel (max 200)
-- **shape** — all field names & types, exports to Excel
-- **custom** — write your own SOQL
-
-**Discover mode** (both tabs) — lists all objects with record counts. Use the filter box to narrow by name.
-
----
-
-**Rate limit protections**
-- {REQUEST_TIMEOUT}s timeout on every API call
-- {int(DISCOVER_DELAY * 1000)}ms delay between COUNT calls in discover mode
-
----
-
-**Common errors**
-
-| Error | Fix |
-|-------|-----|
-| `400` on HubSpot OAuth | Wrong tab for that secret (e.g. Salesforce path in HubSpot tab) |
-| `instance_url not found` | Salesforce secret is missing instance URL |
-| `No usable token found` | HubSpot secret missing token — needs `access_token`, `api_key`, `hapikey`, or OAuth fields |
-| `ExpiredTokenException` | Re-run `aws sso login` + export credentials |
-| `Timeout` | API took >10s — try again |
-        """)
 
 # ── Shared helpers ────────────────────────────────────────────────────────────
 
