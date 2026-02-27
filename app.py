@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-DUG Query Tools — Streamlit Web App
+CRM Query Tools — Streamlit Web App
 Combines HubSpot and Salesforce query tools with AWS credential passthrough.
 """
 
 import io
 import json
+import time
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 
@@ -22,6 +23,14 @@ st.set_page_config(
     page_icon="🔍",
     layout="wide",
 )
+
+# All outbound HTTP requests use this timeout (seconds).
+# Prevents a single slow API call from hanging the app indefinitely.
+REQUEST_TIMEOUT = 10
+
+# Delay between each COUNT call in discover mode (seconds).
+# Avoids bursting the customer's API rate limits when scanning many objects.
+DISCOVER_DELAY = 0.1
 
 # ── Sidebar: AWS credentials ──────────────────────────────────────────────────
 
@@ -76,7 +85,6 @@ def make_excel(records: List[Dict], sheet_name: str = "Results") -> bytes:
         wb.save(buf)
         return buf.getvalue()
 
-    # Preserve insertion order, deduplicate
     all_fields = list(dict.fromkeys(k for r in records for k in r.keys()))
 
     fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
@@ -165,6 +173,7 @@ class HubSpotClient:
                 "refresh_token": creds["refresh_token"],
             },
             headers={"Content-Type": "application/x-www-form-urlencoded"},
+            timeout=REQUEST_TIMEOUT,
         )
         r.raise_for_status()
         return r.json()["access_token"]
@@ -183,12 +192,23 @@ class HubSpotClient:
         return p
 
     def _get(self, path: str, params: Dict = None) -> Dict:
-        r = requests.get(f"{HUBSPOT_BASE}{path}", headers=self._headers(), params=self._params(params))
+        r = requests.get(
+            f"{HUBSPOT_BASE}{path}",
+            headers=self._headers(),
+            params=self._params(params),
+            timeout=REQUEST_TIMEOUT,
+        )
         r.raise_for_status()
         return r.json()
 
     def _post(self, path: str, payload: Dict) -> Dict:
-        r = requests.post(f"{HUBSPOT_BASE}{path}", headers=self._headers(), params=self._params(), json=payload)
+        r = requests.post(
+            f"{HUBSPOT_BASE}{path}",
+            headers=self._headers(),
+            params=self._params(),
+            json=payload,
+            timeout=REQUEST_TIMEOUT,
+        )
         r.raise_for_status()
         return r.json()
 
@@ -274,7 +294,7 @@ class SalesforceClient:
                     "client_id": creds["client_id"],
                     "client_secret": creds["client_secret"],
                     "refresh_token": creds["refresh_token"],
-                })
+                }, timeout=REQUEST_TIMEOUT)
                 r.raise_for_status()
                 return r.json()["access_token"]
             except Exception:
@@ -288,7 +308,7 @@ class SalesforceClient:
                     "client_secret": creds["client_secret"],
                     "username": creds["username"],
                     "password": creds["password"] + creds.get("security_token", ""),
-                })
+                }, timeout=REQUEST_TIMEOUT)
                 r.raise_for_status()
                 return r.json()["access_token"]
             except Exception:
@@ -298,7 +318,7 @@ class SalesforceClient:
             "grant_type": "client_credentials",
             "client_id": creds["client_id"],
             "client_secret": creds["client_secret"],
-        })
+        }, timeout=REQUEST_TIMEOUT)
         r.raise_for_status()
         return r.json()["access_token"]
 
@@ -310,12 +330,17 @@ class SalesforceClient:
             f"{self.instance_url}/services/data/v59.0/query",
             headers=self._headers(),
             params={"q": soql},
+            timeout=REQUEST_TIMEOUT,
         )
         r.raise_for_status()
         return r.json()
 
     def get_objects(self) -> List[Dict]:
-        r = requests.get(f"{self.instance_url}/services/data/v59.0/sobjects", headers=self._headers())
+        r = requests.get(
+            f"{self.instance_url}/services/data/v59.0/sobjects",
+            headers=self._headers(),
+            timeout=REQUEST_TIMEOUT,
+        )
         r.raise_for_status()
         return r.json().get("sobjects", [])
 
@@ -323,6 +348,7 @@ class SalesforceClient:
         r = requests.get(
             f"{self.instance_url}/services/data/v59.0/sobjects/{sobject}/describe",
             headers=self._headers(),
+            timeout=REQUEST_TIMEOUT,
         )
         r.raise_for_status()
         return [
@@ -345,7 +371,7 @@ if not session:
     st.info("👈 Paste your AWS credentials in the sidebar to get started.")
     st.stop()
 
-tab_hs, tab_sf = st.tabs(["🟠 HubSpot", "🔵 Salesforce"])
+tab_hs, tab_sf, tab_help = st.tabs(["🟠 HubSpot", "🔵 Salesforce", "❓ Help"])
 
 
 # ─── HubSpot tab ──────────────────────────────────────────────────────────────
@@ -399,6 +425,7 @@ with tab_hs:
                         count = client.count(obj["name"])
                         rows.append({**obj, "record_count": count if isinstance(count, int) and count >= 0 else "Error"})
                         prog.progress((i + 1) / len(all_objects))
+                        time.sleep(DISCOVER_DELAY)
                     status_text.empty()
 
                     st.success("Done")
@@ -543,6 +570,7 @@ with tab_sf:
                         if is_queryable:
                             count = client.count(obj["name"])
                             record_count = count if isinstance(count, int) and count >= 0 else "Error"
+                            time.sleep(DISCOVER_DELAY)
                         else:
                             record_count = "N/A"
                         rows.append({
@@ -630,3 +658,106 @@ with tab_sf:
 
                 except Exception as exc:
                     st.error(f"Error: {exc}")
+
+
+# ─── Help tab ─────────────────────────────────────────────────────────────────
+
+with tab_help:
+    st.header("Help & Documentation")
+
+    st.subheader("Getting started")
+    st.markdown("""
+Every time you use this tool, you need to provide fresh AWS credentials in the sidebar.
+
+**Step 1** — Log in to AWS SSO (once per day, or when your session expires):
+```bash
+aws sso login --profile hook-production-tic
+```
+
+**Step 2** — Export your temporary credentials:
+```bash
+aws configure export-credentials --profile hook-production-tic
+```
+
+**Step 3** — Copy the entire JSON output and paste it into the sidebar. Done.
+
+> Credentials typically last **8–12 hours**. If you get an auth error mid-session, just repeat steps 1–2.
+    """)
+
+    st.divider()
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("🟠 HubSpot query types")
+        st.markdown("""
+| Type | What it does |
+|------|-------------|
+| **count** | Returns the total number of records for the object |
+| **list** | Returns ID + default properties (up to your limit) |
+| **all** | Returns every property for every record — exports to Excel |
+| **shape** | Returns all property names, types, and labels — exports to Excel |
+| **search** | Filters records using the JSON filter rules you provide |
+
+**Modes**
+- **Query objects** — run one of the query types above against a specific object
+- **Discover objects** — lists all available objects (standard + custom) with record counts. Use the filter box to narrow by name.
+
+**Standard objects:** contacts, companies, deals, tickets, line_items, products, quotes, calls, emails, meetings, notes, tasks, communications
+
+**Search filter operators:** `EQ`, `NEQ`, `LT`, `LTE`, `GT`, `GTE`, `HAS_PROPERTY`, `NOT_HAS_PROPERTY`, `CONTAINS_TOKEN`, `NOT_CONTAINS_TOKEN`, `IN`, `NOT_IN`, `BETWEEN`
+        """)
+
+    with col2:
+        st.subheader("🔵 Salesforce query types")
+        st.markdown("""
+| Type | What it does |
+|------|-------------|
+| **count** | Returns the total number of records (`SELECT COUNT()`) |
+| **list** | Returns Id + Name (up to 20 records) |
+| **all** | Returns all fields using `FIELDS(ALL)` — exports to Excel |
+| **shape** | Returns all field names, types, and labels — exports to Excel |
+| **custom** | Run any SOQL query you write |
+
+**Modes**
+- **Query objects** — run one of the query types above against a specific sObject
+- **Discover objects** — lists all sObjects matching your filter with record counts. Non-queryable objects show N/A.
+
+**`all` query limit:** Salesforce caps `FIELDS(ALL)` at 200 records per call.
+
+**Custom SOQL example:**
+```sql
+SELECT Id, Name, StageName
+FROM Opportunity
+WHERE CloseDate = THIS_QUARTER
+```
+        """)
+
+    st.divider()
+
+    st.subheader("⚠️ Rate limits & safety")
+    st.markdown(f"""
+The tool has two built-in protections to avoid hammering customer APIs:
+
+- **Request timeout:** Every API call times out after **{REQUEST_TIMEOUT} seconds**. If a call hangs (slow response or network issue), it fails cleanly instead of blocking forever.
+- **Discover mode delay:** A **{int(DISCOVER_DELAY * 1000)}ms pause** is added between each COUNT request in Discover mode. This prevents firing hundreds of queries in a burst when scanning many objects.
+
+**Tips to reduce API load:**
+- Use the **filter box** in Discover mode — counting 5 matching objects is much lighter than counting all 300
+- Use **count** query type before **all** to check how large a dataset is
+- Keep record limits reasonable — `all` with 10,000 records on a wide object will be slow
+    """)
+
+    st.divider()
+
+    st.subheader("🔴 Common errors")
+    st.markdown("""
+| Error | Likely cause | Fix |
+|-------|-------------|-----|
+| `Invalid JSON` | Pasted credentials are malformed | Re-run the export command and paste fresh |
+| `400 Bad Request` on HubSpot OAuth | Wrong secret path for this tab (e.g. pasted a Salesforce path) | Check the customer name and which tab you're on |
+| `instance_url not found` | Salesforce secret is missing the instance URL | Check the secret in AWS Secrets Manager |
+| `No usable token found` | HubSpot secret doesn't contain a recognised token key | Check the secret — needs one of: `access_token`, `api_key`, `hapikey`, or OAuth fields |
+| `ExpiredTokenException` | AWS session has expired | Re-run `aws sso login` and `aws configure export-credentials` |
+| `Timeout` | API took longer than 10 seconds to respond | Try again, or check if the customer's API is having issues |
+    """)
