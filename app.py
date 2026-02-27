@@ -5,6 +5,7 @@ Handles shared sidebar (AWS credentials) and page navigation.
 """
 
 import json
+from datetime import datetime, timezone
 
 import boto3
 import streamlit as st
@@ -49,7 +50,25 @@ aws configure export-credentials --profile hook-production-tic
             )
             st.success("✓ Credentials loaded")
             if expiry := raw.get("Expiration"):
-                st.caption(f"Expires: {expiry}")
+                try:
+                    expiry_dt = datetime.fromisoformat(expiry.replace("Z", "+00:00"))
+                    remaining = expiry_dt - datetime.now(timezone.utc)
+                    total_secs = int(remaining.total_seconds())
+                    if total_secs <= 0:
+                        st.error("⛔ Credentials have expired — re-run the export command")
+                    else:
+                        hours, rem = divmod(total_secs, 3600)
+                        minutes = rem // 60
+                        if hours > 0:
+                            label = f"⏱ Expires in {hours}h {minutes}m"
+                        else:
+                            label = f"⏱ Expires in {minutes}m"
+                        if total_secs < 1800:
+                            st.warning(label)
+                        else:
+                            st.caption(label)
+                except Exception:
+                    st.caption(f"Expires: {expiry}")
         except Exception as exc:
             st.session_state.pop("aws_session", None)
             st.error(f"Invalid JSON: {exc}")
