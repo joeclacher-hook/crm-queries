@@ -392,7 +392,7 @@ with tab_hs:
                     prog = st.progress(0)
                     for i, obj in enumerate(all_objects):
                         count = client.count(obj["name"])
-                        rows.append({**obj, "record_count": count if count >= 0 else "Error"})
+                        rows.append({**obj, "record_count": count if isinstance(count, int) and count >= 0 else "Error"})
                         prog.progress((i + 1) / len(all_objects))
 
                     st.success("Done")
@@ -529,12 +529,16 @@ with tab_sf:
                     prog = st.progress(0)
                     for i, obj in enumerate(all_objects):
                         is_queryable = obj.get("queryable", False)
-                        count = client.count(obj["name"]) if is_queryable else "N/A"
+                        if is_queryable:
+                            count = client.count(obj["name"])
+                            record_count = count if isinstance(count, int) and count >= 0 else "Error"
+                        else:
+                            record_count = "N/A"
                         rows.append({
                             "name": obj["name"],
                             "label": obj.get("label", ""),
                             "queryable": is_queryable,
-                            "record_count": count if count >= 0 else "Error",
+                            "record_count": record_count,
                         })
                         prog.progress((i + 1) / len(all_objects))
 
