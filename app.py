@@ -393,10 +393,13 @@ with tab_hs:
                     st.info(f"{len(all_objects)} object(s) found — counting records...")
                     rows = []
                     prog = st.progress(0)
+                    status_text = st.empty()
                     for i, obj in enumerate(all_objects):
+                        status_text.caption(f"({i + 1}/{len(all_objects)}) {obj['name']}")
                         count = client.count(obj["name"])
                         rows.append({**obj, "record_count": count if isinstance(count, int) and count >= 0 else "Error"})
                         prog.progress((i + 1) / len(all_objects))
+                    status_text.empty()
 
                     st.success("Done")
                     st.dataframe(rows, use_container_width=True)
@@ -533,8 +536,10 @@ with tab_sf:
                     st.info(f"{len(all_objects)} object(s) found — counting records...")
                     rows = []
                     prog = st.progress(0)
+                    status_text = st.empty()
                     for i, obj in enumerate(all_objects):
                         is_queryable = obj.get("queryable", False)
+                        status_text.caption(f"({i + 1}/{len(all_objects)}) {obj['name']}")
                         if is_queryable:
                             count = client.count(obj["name"])
                             record_count = count if isinstance(count, int) and count >= 0 else "Error"
@@ -547,6 +552,7 @@ with tab_sf:
                             "record_count": record_count,
                         })
                         prog.progress((i + 1) / len(all_objects))
+                    status_text.empty()
 
                     st.success("Done")
                     st.dataframe(rows, use_container_width=True)
