@@ -381,7 +381,7 @@ with tab_hs:
                     status_text.empty()
 
                     st.success("Done")
-                    st.dataframe(rows, use_container_width=True)
+                    st.dataframe(rows, width="stretch")
 
                 except Exception as exc:
                     st.error(f"Error: {exc}")
@@ -446,7 +446,7 @@ with tab_hs:
                             records = client.list_records(hs_object, props or None, hs_limit)
                         flat = [client.flatten(r) for r in records]
                         st.success(f"{len(flat)} records returned")
-                        st.dataframe(flat, use_container_width=True)
+                        st.dataframe(flat, width="stretch")
 
                     elif hs_qtype == "shape":
                         with st.spinner("Fetching properties..."):
@@ -457,7 +457,7 @@ with tab_hs:
                             for p in all_props
                         ]
                         st.success(f"{len(rows)} properties found")
-                        st.dataframe(rows, use_container_width=True)
+                        st.dataframe(rows, width="stretch")
                         excel_download_button(make_excel(rows, "Object Shape"), f"{hs_object}_shape_{ts()}.xlsx")
 
                     elif hs_qtype == "all":
@@ -468,7 +468,7 @@ with tab_hs:
                             records = client.fetch_all(hs_object, prop_names, hs_limit)
                         flat = [client.flatten(r) for r in records]
                         st.success(f"{len(flat)} records, {len(prop_names)} properties")
-                        st.dataframe(flat, use_container_width=True)
+                        st.dataframe(flat, width="stretch")
                         excel_download_button(make_excel(flat, "Query Results"), f"{hs_object}_records_{ts()}.xlsx")
 
                     elif hs_qtype == "search":
@@ -478,7 +478,7 @@ with tab_hs:
                         total = result.get("total", len(records))
                         flat = [client.flatten(r) for r in records]
                         st.success(f"{total:,} total matching — {len(flat)} returned")
-                        st.dataframe(flat, use_container_width=True)
+                        st.dataframe(flat, width="stretch")
 
                 except Exception as exc:
                     st.error(f"Error: {exc}")
@@ -545,7 +545,7 @@ with tab_sf:
                     status_text.empty()
 
                     st.success("Done")
-                    st.dataframe(rows, use_container_width=True)
+                    st.dataframe(rows, width="stretch")
 
                 except Exception as exc:
                     st.error(f"Error: {exc}")
@@ -593,7 +593,7 @@ with tab_sf:
                         with st.spinner(f"Describing {sf_object}..."):
                             fields = client.describe(sf_object)
                         st.success(f"{len(fields)} fields found")
-                        st.dataframe(fields, use_container_width=True)
+                        st.dataframe(fields, width="stretch")
                         excel_download_button(make_excel(fields, "Object Shape"), f"{sf_object}_shape_{ts()}.xlsx")
 
                     else:
@@ -620,7 +620,7 @@ with tab_sf:
                         else:
                             clean = [{k: v for k, v in r.items() if k != "attributes"} for r in records]
                             st.success(f"{total:,} total — {len(clean)} returned")
-                            st.dataframe(clean, use_container_width=True)
+                            st.dataframe(clean, width="stretch")
                             if sf_qtype in ("all", "custom"):
                                 excel_download_button(
                                     make_excel(clean, "Query Results"),
